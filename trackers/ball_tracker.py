@@ -1,11 +1,25 @@
-import cv2
-from ultralytics import YOLO
 import pickle
+
+import cv2
+import pandas as pd
+from ultralytics import YOLO
 
 
 class BallTrack:
     def __init__(self, model_path):
         self.model = YOLO(model_path)
+
+
+    # Interpolate Ball Positions to show the ball position if it is not detected in a frame
+    def interpolate_ball(self, balll_postions):
+        ball_positions = (balll_postion.get(1, []) for balll_postion in balll_postions)
+        df_ball_positions = pd.DataFrame(
+            ball_positions, columns=["x1", "y1", "x2", "y2"]
+        )
+        df_ball_positions = df_ball_positions.interpolate()
+        df_ball_positions = df_ball_positions.bfill()
+        ball_positions = [{1: x} for x in df_ball_positions.to_numpy().tolist()]
+        return ball_positions
 
     def detect_frames(self, frames, read_from_stubs=False, stubs_path=None):
         ball_detections = []

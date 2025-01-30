@@ -3,12 +3,12 @@ import torch
 import torchvision.models as models
 from torchvision import transforms
 
-
+# Using the weights from: https://github.com/yastrebksv/tenniscourtdetector
 class CourtLineDetector:
     def __init__(self, model_path):
         self.model = models.resnet50(pretrained=True)
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, 14 * 2)
-        self.model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True)) # weights_only=True as the model is not trained on the same YOLO model
+        self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self.transform = transforms.Compose(
             [
                 transforms.ToPILImage(),
@@ -22,11 +22,12 @@ class CourtLineDetector:
 
     def predict(self, image):
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image_tensor = self.transform(image_rgb)
-
+        image_tensor = self.transform(image_rgb).unsqueeze(0)
         with torch.no_grad():
             output = self.model(image_tensor)
-        keypoints = output[0].numpy()
+        # keypoints = output[0].numpy()
+        keypoints = output.squeeze().cpu().numpy()
+        
         original_height, original_width = image_rgb.shape[:2]
         keypoints[::2] *= original_width / 224
         keypoints[1::2] *= original_height / 224
@@ -36,11 +37,12 @@ class CourtLineDetector:
             x = int(keypoints[i])
             y = int(keypoints[i+1])
             cv2.putText(image, str(i//2), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-            cv2.circle(image, (keypoints[i], keypoints[i+1]), 5, (0, 0, 255), -1)
+            cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
         return image
 
     def draw_keypoints_video(self, video_frames, keypoints):
-        output_video_frame = []
-        for frame, keypoint in zip(video_frames, keypoints):
-            output_video_frame.append(self.draw_keypoints(frame, keypoint))
-        return output_video_frame
+        output_video_frames = []
+        for frame in video_frames:
+            frame = self.draw_keypoints(frame, keypoints)
+            output_video_frames.append(frame)
+        return output_video_frames
