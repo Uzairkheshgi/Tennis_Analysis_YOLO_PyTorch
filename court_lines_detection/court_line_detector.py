@@ -1,12 +1,12 @@
 import cv2
 import torch
-import torchvision.models as models
 from torchvision import transforms
+from torchvision.models import resnet50, ResNet50_Weights
 
 # Using the weights from: https://github.com/yastrebksv/tenniscourtdetector
 class CourtLineDetector:
     def __init__(self, model_path):
-        self.model = models.resnet50(pretrained=True)
+        self.model = resnet50(weights=ResNet50_Weights.DEFAULT)
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, 14 * 2)
         self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
         self.transform = transforms.Compose(

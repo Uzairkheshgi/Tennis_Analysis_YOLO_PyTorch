@@ -1,6 +1,8 @@
-runs
-venv
-.venv
+runs/
+venv*/
+.env
 tennis-ball-detection-6
 tennis_court_det_dataset
 __pycache__
+output_videos/
+.vscode/
